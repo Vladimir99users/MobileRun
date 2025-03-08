@@ -9,96 +9,61 @@ namespace Assets.Scripts.Input
         public event System.Action<Vector2> OnMoved;
         public event System.Action<Vector2> OnLooked;
         public event System.Action OnTouched;
-        public AndroidInput input;
 
-        private bool isSendLookData = false;
+        private AndroidInput input;
+        private bool isSendingLookData = false;
         private Vector2 movingVector;
-        private Vector2 startingVector;
         private Vector2 lookingVector;
         public void Initialize()
         {
             input = new AndroidInput();
             input.Enable();
-            input.Player.Move.Enable();
-            input.Player.Look.Enable();
-            input.Player.Touch.Enable();
-            input.Player.Fire.Enable();
-            input.Player.MousePosition.Enable();
-
-            input.Player.Move.performed += SendMovingPlayer;
-            input.Player.Move.canceled += SendMovingPlayerCanceled;
-            // input.Player.Look.performed += SendLookAround;
-
-            input.Player.Touch.started += SendLookStarted;
-            input.Player.Touch.canceled += SendLookCanceled;
-            input.Player.MousePosition.performed += SendLookAround;
-            input.Player.Fire.canceled += Fire;
+            input.Player.Move.performed += OnMovePerformed;
+            input.Player.Move.canceled += OnMoveCanceled;
+            input.Player.Touch.started += OnTouchStarted;
+            input.Player.Touch.canceled += OnTouchCanceled;
+            input.Player.MousePosition.performed += OnLookAround;
+            input.Player.Fire.canceled += OnFire;
         }
 
-        private void Fire(InputAction.CallbackContext obj)
+        private void OnFire(InputAction.CallbackContext obj)
         {
-            if (lookingVector.Equals(Vector2.zero) && movingVector.x > (Screen.width / 3))
+            if (lookingVector.Equals(Vector2.zero) && movingVector.x > DeathZone())
             {
-                isSendLookData = obj.ReadValueAsButton();
+                isSendingLookData = obj.ReadValueAsButton();
                 OnTouched?.Invoke();
             }
-            // ;
-        }
-        private void SendLookStarted(InputAction.CallbackContext obj)
-        {
-            isSendLookData = obj.ReadValueAsButton();
-            startingVector = input.Player.MousePosition.ReadValue<Vector2>();
-            //  Debug.Log("Started");
-            //  OnTouched?.Invoke(startingVector);
-        }
 
-        private void SendLookCanceled(InputAction.CallbackContext obj)
+        }
+        private void OnTouchStarted(InputAction.CallbackContext obj)
+            => isSendingLookData = obj.ReadValueAsButton();
+        private void OnTouchCanceled(InputAction.CallbackContext obj)
         {
             lookingVector = Vector2.zero;
-            if (movingVector.x < (Screen.width / 3))
-            {
-                isSendLookData = false;
-                OnLooked?.Invoke(lookingVector);
-                return;
-            }
-
-            isSendLookData = false;
-            OnLooked?.Invoke(lookingVector);
+            HandleLookedEvent();
         }
-
-        private void SendLookAround(InputAction.CallbackContext obj)
+        private void OnLookAround(InputAction.CallbackContext obj)
         {
-            if (!isSendLookData)
-                return;
-
             movingVector = obj.ReadValue<Vector2>();
-
-            if (movingVector.x < (Screen.width / 3))
-            {
+            if (!isSendingLookData || movingVector.x < DeathZone())
                 return;
-            }
 
             lookingVector = input.Player.Look.ReadValue<Vector2>();
-
             if (lookingVector.Equals(Vector2.zero))
                 return;
-
             OnLooked?.Invoke(lookingVector);
         }
-
-
-
-        private void SendMovingPlayer(InputAction.CallbackContext obj)
+        private void OnMovePerformed(InputAction.CallbackContext obj)
+            => OnMoved?.Invoke(obj.ReadValue<Vector2>());
+        private void OnMoveCanceled(InputAction.CallbackContext obj)
+            => OnMoved?.Invoke(Vector2.zero);
+        private void HandleLookedEvent()
         {
-            var movingVector = obj.ReadValue<Vector2>();
-            OnMoved?.Invoke(movingVector);
+            isSendingLookData = false;
+            OnLooked?.Invoke(lookingVector);
         }
-
-        private void SendMovingPlayerCanceled(InputAction.CallbackContext obj)
-        {
-            OnMoved?.Invoke(Vector2.zero);
-        }
-
+        private float DeathZone()
+            => Screen.width / 3f;
 
     }
 

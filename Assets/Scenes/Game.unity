@@ -3194,7 +3194,7 @@ MonoBehaviour:
   takeObjectTransform: {fileID: 932638877}
   characterController: {fileID: 293948507}
   distanceInteractable: 5
-  movementSpeed: 0.1
+  movementSpeed: 5
   rotationSpeed: 0.25
   tiltSpeed: 0.1
 --- !u!43 &372690164
